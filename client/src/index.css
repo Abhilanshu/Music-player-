@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+@source "../index.html";
+@source "../src";
+
+body {
+  @apply bg-gray-50 text-gray-900;
+}
