@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { PlayerProvider } from './context/PlayerContext';
 import Sidebar from './components/Sidebar';
 import Player from './components/Player';
+import InstallBanner from './components/InstallBanner';
 import Home from './pages/Home';
 import Search from './pages/Search';
 import Playlists from './pages/Playlists';
@@ -22,6 +23,7 @@ function App() {
             </Routes>
           </main>
           <Player />
+          <InstallBanner />
         </div>
       </Router>
     </PlayerProvider>
