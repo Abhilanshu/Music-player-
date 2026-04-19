@@ -110,7 +110,8 @@ export const getLiveTrending = async () => {
 export const getSongSuggestions = async (songId) => {
   if (!songId) return [];
   try {
-    const url = `${SAAVN_API_BASE}/songs/${songId}/suggestions&limit=10`;
+    // Fixed URL - ?limit not &limit
+    const url = `${SAAVN_API_BASE}/songs/${songId}/suggestions?limit=10`;
     const data = await fetchWithCache(url);
     if (data.status === 'SUCCESS' && data.data) {
       return data.data.map(formatSaavnTrack).filter(t => t.previewUrl);
@@ -118,6 +119,22 @@ export const getSongSuggestions = async (songId) => {
     return [];
   } catch (error) {
     console.error('Error fetching suggestions for autoplay:', error);
+    return [];
+  }
+};
+
+// Fetch all playable songs from a chart or playlist by ID
+export const getPlaylistSongs = async (playlistId) => {
+  if (!playlistId) return [];
+  try {
+    const url = `${SAAVN_API_BASE}/playlists?id=${playlistId}`;
+    const data = await fetchWithCache(url);
+    if (data.status === 'SUCCESS' && data.data?.songs) {
+      return data.data.songs.map(formatSaavnTrack).filter(t => t.previewUrl);
+    }
+    return [];
+  } catch (error) {
+    console.error('Error fetching playlist songs:', error);
     return [];
   }
 };

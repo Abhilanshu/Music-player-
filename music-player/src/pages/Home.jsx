@@ -1,11 +1,38 @@
-import React, { useEffect, useState } from 'react';
-import { getLiveTrending } from '../services/api';
+import React, { useEffect, useState, useCallback } from 'react';
+import { getLiveTrending, getPlaylistSongs } from '../services/api';
 import TrackCard from '../components/TrackCard';
 import { usePlayer } from '../context/PlayerContext';
-import { Play } from 'lucide-react';
+import { Play, Loader } from 'lucide-react';
 import './Home.css';
 
-const ShelfRow = ({ title, items, isTrackCard, playerQueue }) => {
+const PlaylistCard = ({ item, onPlay }) => {
+  const [loading, setLoading] = React.useState(false);
+
+  const handleClick = async () => {
+    if (loading) return;
+    setLoading(true);
+    await onPlay(item.id);
+    setLoading(false);
+  };
+
+  return (
+    <div className="chart-card" onClick={handleClick} role="button" tabIndex={0}
+      onKeyDown={(e) => e.key === 'Enter' && handleClick()}>
+      <div className="chart-cover-wrapper">
+        <img src={item.coverUrl} alt={item.title} className="chart-cover" loading="lazy" />
+        <div className={`chart-overlay ${loading ? 'loading' : ''}`}>
+          {loading
+            ? <Loader size={28} className="spin-icon" />
+            : <Play size={28} fill="white" />
+          }
+        </div>
+      </div>
+      <span className="chart-title">{item.title}</span>
+    </div>
+  );
+};
+
+const ShelfRow = ({ title, items, isTrackCard, playerQueue, onPlaylistClick }) => {
   const scrollRef = React.useRef(null);
   const scroll = (offset) => {
     if (scrollRef.current) {
@@ -30,10 +57,7 @@ const ShelfRow = ({ title, items, isTrackCard, playerQueue }) => {
             {isTrackCard ? (
               <TrackCard track={item} contextQueue={playerQueue} />
             ) : (
-              <div className="chart-card">
-                <img src={item.coverUrl} alt={item.title} className="chart-cover" />
-                <span className="chart-title">{item.title}</span>
-              </div>
+              <PlaylistCard item={item} onPlay={onPlaylistClick} />
             )}
           </div>
         ))}
@@ -66,6 +90,14 @@ const Home = () => {
     }
   };
 
+  // Called when user clicks a Chart or Playlist card — lazy fetch, cached
+  const handlePlaylistClick = useCallback(async (playlistId) => {
+    const songs = await getPlaylistSongs(playlistId);
+    if (songs && songs.length > 0) {
+      playTrack(songs[0], songs);
+    }
+  }, [playTrack]);
+
   return (
     <div className="home-page animate-fade-in">
       <div className="hero-section glass">
@@ -88,8 +120,8 @@ const Home = () => {
       ) : (
         <div className="shelves-container">
           <ShelfRow title="Live Global Trending" items={data.trending} isTrackCard={true} playerQueue={data.trending} />
-          <ShelfRow title="Top Internet Charts" items={data.charts} isTrackCard={false} />
-          <ShelfRow title="Curated Playlists" items={data.playlists} isTrackCard={false} />
+          <ShelfRow title="Top Internet Charts" items={data.charts} isTrackCard={false} onPlaylistClick={handlePlaylistClick} />
+          <ShelfRow title="Curated Playlists" items={data.playlists} isTrackCard={false} onPlaylistClick={handlePlaylistClick} />
         </div>
       )}
     </div>

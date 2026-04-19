@@ -158,12 +158,48 @@
   transform: scale(1.02);
 }
 
-.chart-cover {
+.chart-cover-wrapper {
+  position: relative;
   width: 100%;
   aspect-ratio: 1/1;
   border-radius: var(--border-radius);
-  object-fit: cover;
+  overflow: hidden;
   box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+
+.chart-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.chart-card:hover .chart-cover {
+  transform: scale(1.05);
+}
+
+/* Play button overlay that appears on hover */
+.chart-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  border-radius: var(--border-radius);
+  color: white;
+}
+
+.chart-card:hover .chart-overlay,
+.chart-overlay.loading {
+  opacity: 1;
+}
+
+.spin-icon {
+  animation: spin 1s linear infinite;
 }
 
 .chart-title {
@@ -173,6 +209,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
