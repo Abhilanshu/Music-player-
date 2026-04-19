@@ -169,8 +169,8 @@
 
   .main-content {
     margin-top: 60px;
-    /* topbar(60) + bottom occupied space(154) */
-    height: calc(100vh - 60px - 154px);
+    /* topbar(60) + bottom occupied space(160) */
+    height: calc(100vh - 60px - 160px);
     padding-bottom: 20px;
   }
 }

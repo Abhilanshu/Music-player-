@@ -156,7 +156,7 @@ input[type=range]::-webkit-slider-runnable-track {
 @media (max-width: 768px) {
   .player-bar {
     padding: 0 14px;
-    bottom: 82px; /* significant clearance above bottom nav */
+    bottom: 88px; /* High clearance for premium gap above bottom nav */
     height: 72px; /* slightly taller with more clearance */
     background: #111115; /* solid background on mobile to prevent overlap confusion */
     border-top: 1px solid rgba(255, 255, 255, 0.1);
