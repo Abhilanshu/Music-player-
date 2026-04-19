@@ -1,38 +1,32 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { getLiveTrending, getPlaylistSongs } from '../services/api';
 import TrackCard from '../components/TrackCard';
+import PlaylistModal from '../components/PlaylistModal';
 import { usePlayer } from '../context/PlayerContext';
 import { Play, Loader } from 'lucide-react';
 import './Home.css';
 
-const PlaylistCard = ({ item, onPlay }) => {
-  const [loading, setLoading] = React.useState(false);
-
-  const handleClick = async () => {
-    if (loading) return;
-    setLoading(true);
-    await onPlay(item.id);
-    setLoading(false);
-  };
-
-  return (
-    <div className="chart-card" onClick={handleClick} role="button" tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && handleClick()}>
-      <div className="chart-cover-wrapper">
-        <img src={item.coverUrl} alt={item.title} className="chart-cover" loading="lazy" />
-        <div className={`chart-overlay ${loading ? 'loading' : ''}`}>
-          {loading
-            ? <Loader size={28} className="spin-icon" />
-            : <Play size={28} fill="white" />
-          }
-        </div>
+/* ---- Chart/Playlist Card ---- */
+const PlaylistCard = ({ item, onOpen }) => (
+  <div
+    className="chart-card"
+    onClick={() => onOpen(item)}
+    role="button"
+    tabIndex={0}
+    onKeyDown={(e) => e.key === 'Enter' && onOpen(item)}
+  >
+    <div className="chart-cover-wrapper">
+      <img src={item.coverUrl} alt={item.title} className="chart-cover" loading="lazy" />
+      <div className="chart-overlay">
+        <Play size={28} fill="white" />
       </div>
-      <span className="chart-title">{item.title}</span>
     </div>
-  );
-};
+    <span className="chart-title">{item.title}</span>
+  </div>
+);
 
-const ShelfRow = ({ title, items, isTrackCard, playerQueue, onPlaylistClick }) => {
+/* ---- Horizontal Shelf with nav arrows ---- */
+const ShelfRow = ({ title, items, isTrackCard, playerQueue, onOpenPlaylist }) => {
   const scrollRef = React.useRef(null);
   const scroll = (offset) => {
     if (scrollRef.current) {
@@ -57,7 +51,7 @@ const ShelfRow = ({ title, items, isTrackCard, playerQueue, onPlaylistClick }) =
             {isTrackCard ? (
               <TrackCard track={item} contextQueue={playerQueue} />
             ) : (
-              <PlaylistCard item={item} onPlay={onPlaylistClick} />
+              <PlaylistCard item={item} onOpen={onOpenPlaylist} />
             )}
           </div>
         ))}
@@ -66,21 +60,23 @@ const ShelfRow = ({ title, items, isTrackCard, playerQueue, onPlaylistClick }) =
   );
 };
 
+/* ---- Main Home Page ---- */
 const Home = () => {
   const [data, setData] = useState({ trending: [], charts: [], playlists: [] });
   const [loading, setLoading] = useState(true);
-  const { playTrack, setQueue } = usePlayer();
+
+  // Modal state
+  const [modal, setModal] = useState(null); // { playlist: {id, title, coverUrl}, songs: [], loading: true }
+
+  const { playTrack } = usePlayer();
 
   useEffect(() => {
     const fetchHomeData = async () => {
       setLoading(true);
       const modules = await getLiveTrending();
-      if (modules) {
-        setData(modules);
-      }
+      if (modules) setData(modules);
       setLoading(false);
     };
-    
     fetchHomeData();
   }, []);
 
@@ -90,13 +86,16 @@ const Home = () => {
     }
   };
 
-  // Called when user clicks a Chart or Playlist card — lazy fetch, cached
-  const handlePlaylistClick = useCallback(async (playlistId) => {
-    const songs = await getPlaylistSongs(playlistId);
-    if (songs && songs.length > 0) {
-      playTrack(songs[0], songs);
-    }
-  }, [playTrack]);
+  // Open modal immediately with loading state, then fetch songs
+  const handleOpenPlaylist = useCallback(async (item) => {
+    // Show modal right away with spinner
+    setModal({ playlist: item, songs: [], loading: true });
+    const songs = await getPlaylistSongs(item.id);
+    // Update with actual songs
+    setModal({ playlist: item, songs: songs || [], loading: false });
+  }, []);
+
+  const handleCloseModal = useCallback(() => setModal(null), []);
 
   return (
     <div className="home-page animate-fade-in">
@@ -120,9 +119,19 @@ const Home = () => {
       ) : (
         <div className="shelves-container">
           <ShelfRow title="Live Global Trending" items={data.trending} isTrackCard={true} playerQueue={data.trending} />
-          <ShelfRow title="Top Internet Charts" items={data.charts} isTrackCard={false} onPlaylistClick={handlePlaylistClick} />
-          <ShelfRow title="Curated Playlists" items={data.playlists} isTrackCard={false} onPlaylistClick={handlePlaylistClick} />
+          <ShelfRow title="Top Internet Charts" items={data.charts} isTrackCard={false} onOpenPlaylist={handleOpenPlaylist} />
+          <ShelfRow title="Curated Playlists" items={data.playlists} isTrackCard={false} onOpenPlaylist={handleOpenPlaylist} />
         </div>
+      )}
+
+      {/* Playlist detail modal */}
+      {modal && (
+        <PlaylistModal
+          playlist={modal.playlist}
+          songs={modal.songs}
+          loading={modal.loading}
+          onClose={handleCloseModal}
+        />
       )}
     </div>
   );
