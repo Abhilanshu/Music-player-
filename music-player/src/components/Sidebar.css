@@ -169,8 +169,8 @@
 
   .main-content {
     margin-top: 60px;
-    /* Adjust height to account for Topbar(60) + BottomNav(70) + Player(60) */
-    height: calc(100vh - 60px - 70px - 60px);
+    /* topbar(60) + bottomnav(70) + player(68) */
+    height: calc(100vh - 60px - 70px - 68px);
     padding-bottom: 20px;
   }
 }

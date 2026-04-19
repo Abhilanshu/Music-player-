@@ -155,34 +155,80 @@ input[type=range]::-webkit-slider-runnable-track {
 
 @media (max-width: 768px) {
   .player-bar {
-    padding: 0 16px;
-    bottom: 70px; /* Sit exactly above the Bottom Nav Bar */
-    height: 60px; /* Slightly thinner on mobile */
-    border-top: 1px solid var(--glass-border);
-    backdrop-filter: blur(25px);
-    -webkit-backdrop-filter: blur(25px);
+    padding: 0 14px;
+    bottom: 70px; /* sit above bottom nav */
+    height: 72px; /* slightly taller with more clearance */
+    background: #111115; /* solid background on mobile to prevent overlap confusion */
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 400; /* ensures player is above content but below modals */
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.5);
   }
-  
+
+  .player-layout {
+    gap: 0;
+  }
+
+  /* Song info takes left portion */
   .track-info {
-    width: 60%;
+    width: auto;
+    flex: 1;
+    min-width: 0;
+    gap: 12px;
   }
 
   .track-cover {
-    width: 44px;
-    height: 44px;
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    border-radius: 6px;
   }
-  
+
+  .track-details h4 {
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
+    color: #fff;
+  }
+
+  .track-details p {
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
+  }
+
+  /* Controls only on the right — no volume on mobile */
   .player-controls {
-    width: 40%;
-    align-items: flex-end;
+    width: auto;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    padding-left: 10px;
   }
-  
+
   .progress-container {
-    display: none; /* hide standard progress bar on mobile */
+    display: none; /* hidden on mobile — thin progress bar replaces it */
   }
-  
+
   .control-buttons {
     margin-bottom: 0;
-    gap: 16px;
+    gap: 20px;
+  }
+
+  /* Hide volume entirely on mobile — use device hardware buttons */
+  .volume-controls {
+    display: none !important;
+  }
+
+  .play-btn {
+    width: 40px;
+    height: 40px;
+    background: #fff;
+    color: #000;
   }
 }
+
