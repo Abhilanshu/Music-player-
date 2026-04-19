@@ -85,6 +85,13 @@ a {
   width: 100vw;
   position: relative;
   overflow: hidden;
+  flex-direction: row; /* Desktop default */
+}
+
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column; /* Mobile stack */
+  }
 }
 
 .main-content {
