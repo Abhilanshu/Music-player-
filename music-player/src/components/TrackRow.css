@@ -1,0 +1,106 @@
+.track-row {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  gap: 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+  position: relative;
+}
+
+.track-row:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.track-row.active {
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.row-prefix {
+  width: 32px;
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.row-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.row-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.row-title {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.track-row.active .row-title {
+  color: var(--primary);
+}
+
+.row-artist {
+  font-size: 13px;
+}
+
+.row-duration {
+  font-size: 13px;
+  width: 50px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.row-menu-btn {
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.2s;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.track-row:hover .row-menu-btn {
+  opacity: 1;
+}
+
+.row-menu-btn:hover {
+  color: white;
+}
+
+/* Playing Bars Animation */
+.playing-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 14px;
+}
+
+.playing-bars .bar {
+  width: 3px;
+  background: var(--primary);
+  border-radius: 1px;
+  animation: bar-dance 0.6s ease-in-out infinite alternate;
+}
+
+.playing-bars .bar:nth-child(2) { animation-delay: 0.2s; }
+.playing-bars .bar:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes bar-dance {
+  from { height: 4px; }
+  to { height: 14px; }
+}
+
+@media (max-width: 768px) {
+  .row-duration { display: none; }
+  .row-menu-btn { opacity: 1; }
+}

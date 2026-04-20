@@ -39,31 +39,152 @@ const formatSaavnTrack = (track) => {
     album: typeof track.album === 'object' ? track.album?.name : track.album,
     coverUrl: coverUrl,
     previewUrl: audioUrl,
+    downloadUrls: downloadLinks,
     duration: parseInt(track.duration || '0', 10),
+    type: 'song',
   };
 };
 
+const formatSaavnPlaylist = (p) => {
+  const images = p.image || [];
+  const coverUrl = images.length > 0 ? images[images.length - 1].link : '';
+  return {
+    id: p.id,
+    title: p.title || p.name,
+    subtitle: p.subtitle || `${p.songCount || '?'} songs`,
+    coverUrl,
+    type: 'playlist',
+  };
+};
+
+const formatSaavnAlbum = (a) => {
+  const images = a.image || [];
+  const coverUrl = images.length > 0 ? images[images.length - 1].link : '';
+  return {
+    id: a.id,
+    title: a.title || a.name,
+    subtitle: a.description || a.primaryArtists || '',
+    coverUrl,
+    type: 'album',
+  };
+};
+
+// New unified search — returns { songs, playlists, albums }
+export const searchAll = async (query) => {
+  if (!query) return { songs: [], playlists: [], albums: [] };
+  const q = encodeURIComponent(query);
+  
+  const [songsRes, playlistsRes, albumsRes] = await Promise.allSettled([
+    fetch(`${SAAVN_API_BASE}/search/songs?query=${q}&limit=20`).then(r => r.json()),
+    fetch(`${SAAVN_API_BASE}/search/playlists?query=${q}&limit=10`).then(r => r.json()),
+    fetch(`${SAAVN_API_BASE}/search/albums?query=${q}&limit=8`).then(r => r.json()),
+  ]);
+
+  const songs = songsRes.status === 'fulfilled' && songsRes.value?.data?.results
+    ? songsRes.value.data.results.map(formatSaavnTrack).filter(t => t?.previewUrl)
+    : [];
+
+  const playlists = playlistsRes.status === 'fulfilled' && playlistsRes.value?.data?.results
+    ? playlistsRes.value.data.results.map(formatSaavnPlaylist)
+    : [];
+
+  const albums = albumsRes.status === 'fulfilled' && albumsRes.value?.data?.results
+    ? albumsRes.value.data.results.map(formatSaavnAlbum)
+    : [];
+
+  return { songs, playlists, albums };
+};
+
+
+
 export const searchMusic = async (query, limit = 200) => {
   if (!query) return [];
-  // Hardcoded intercept for "trending"
   const qStr = query.toLowerCase().trim();
-  if (qStr === 'trending' || qStr === 'trending songs' || qStr === 'top songs') {
-    const modules = await getLiveTrending();
-    return modules?.trending || [];
+
+  // 1. Semantic Intercept: Playlists
+  if (qStr.includes('playlist')) {
+    try {
+      const cleanQuery = qStr.replace('playlist', '').trim();
+      const pUrl = `${SAAVN_API_BASE}/search/playlists?query=${encodeURIComponent(cleanQuery)}&limit=5`;
+      const pData = await fetchWithCache(pUrl);
+      if (pData.status === 'SUCCESS' && pData.data?.results?.length > 0) {
+        // Fetch songs for the best matching playlist
+        const topPlaylistId = pData.data.results[0].id;
+        return await getPlaylistSongs(topPlaylistId);
+      }
+    } catch (e) { console.error("Playlist search failed", e); }
   }
 
+  // 2. Semantic Intercept: Language-Specific Trending
+  if (qStr.includes('trending')) {
+    const languages = ['hindi', 'english', 'punjabi', 'tamil', 'telugu', 'marathi', 'gujarati', 'bengali', 'kannada', 'bhojpuri', 'malayalam', 'urdu'];
+    const detectedLang = languages.find(lang => qStr.includes(lang));
+    
+    if (detectedLang) {
+      try {
+        const url = `${SAAVN_API_BASE}/modules?language=${detectedLang}`;
+        const data = await fetchWithCache(url);
+        if (data.status === 'SUCCESS' && data.data?.trending?.songs) {
+          const rawTrendingSongs = data.data.trending.songs || [];
+          const songIds = rawTrendingSongs.map(s => s.id).join(',');
+          if (songIds) {
+             const songsUrl = `${SAAVN_API_BASE}/songs?id=${songIds}`;
+             const songsData = await fetchWithCache(songsUrl);
+             if (songsData.status === 'SUCCESS') {
+               return songsData.data.map(formatSaavnTrack).filter(t => t.previewUrl);
+             }
+          }
+        }
+      } catch (e) { console.error("Language trending failed", e); }
+    } else {
+      // General trending
+      const modules = await getLiveTrending();
+      return modules?.trending || [];
+    }
+  }
+
+  // 3. Default JioSaavn Song Search
+  let results = [];
   try {
-    // We added limit=50 to fetch lots of songs (e.g. Honey Singh)
     const url = `${SAAVN_API_BASE}/search/songs?query=${encodeURIComponent(query)}&limit=${limit}`;
     const data = await fetchWithCache(url);
     if (data.status === 'SUCCESS' && data.data?.results) {
-      return data.data.results.map(formatSaavnTrack).filter(t => t.previewUrl);
+      results = data.data.results.map(formatSaavnTrack).filter(t => t.previewUrl);
     }
-    return [];
   } catch (error) {
     console.error('Error searching JioSaavn:', error);
-    return [];
   }
+
+  // 4. YouTube Fallback (if JioSaavn has no results or few results)
+  if (results.length < 3) {
+    try {
+      console.log('JioSaavn returned empty, falling back to YouTube (Piped API)...');
+      const ytUrl = `https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(query)}&filter=music_songs`;
+      const ytRes = await fetch(ytUrl);
+      const ytData = await ytRes.json();
+      
+      if (ytData.items && ytData.items.length > 0) {
+        // Map YouTube results to our Track format
+        // Note: Piped requires a secondary fetch to get the audio stream URL. 
+        // We will store the videoId in previewUrl temporarily with a special prefix, 
+        // and PlayerContext will intercept it before playing.
+        const ytResults = ytData.items.slice(0, 15).map(item => ({
+          id: item.url.split('?v=')[1],
+          title: item.title,
+          artist: item.uploaderName || 'YouTube Artist',
+          album: 'YouTube Fallback',
+          coverUrl: item.thumbnail,
+          previewUrl: `YT_FALLBACK:${item.url.split('?v=')[1]}`,
+          duration: item.duration || 0,
+        }));
+        results = [...results, ...ytResults];
+      }
+    } catch (e) {
+      console.error('YouTube Fallback failed:', e);
+    }
+  }
+
+  return results;
 };
 
 // Microservice: Gets real internet trending from Saavn Charts
@@ -123,18 +244,42 @@ export const getSongSuggestions = async (songId) => {
   }
 };
 
-// Fetch all playable songs from a chart or playlist by ID
-export const getPlaylistSongs = async (playlistId) => {
-  if (!playlistId) return [];
+// Fetch all playable songs from a chart, playlist, or album by ID
+export const getPlaylistSongs = async (id, type = 'playlist') => {
+  if (!id) return [];
   try {
-    const url = `${SAAVN_API_BASE}/playlists?id=${playlistId}`;
-    const data = await fetchWithCache(url);
+    // Try playlist endpoint first, fallback to album if no songs returned
+    const playlistUrl = `${SAAVN_API_BASE}/playlists?id=${id}`;
+    const data = await fetchWithCache(playlistUrl);
     if (data.status === 'SUCCESS' && data.data?.songs) {
       return data.data.songs.map(formatSaavnTrack).filter(t => t.previewUrl);
     }
+    
+    // Fallback: try album endpoint
+    const albumUrl = `${SAAVN_API_BASE}/albums?id=${id}`;
+    const albumData = await fetchWithCache(albumUrl);
+    if (albumData.status === 'SUCCESS' && albumData.data?.songs) {
+      return albumData.data.songs.map(formatSaavnTrack).filter(t => t.previewUrl);
+    }
+
     return [];
   } catch (error) {
-    console.error('Error fetching playlist songs:', error);
+    console.error('Error fetching collection songs:', error);
     return [];
+  }
+};
+// Fetch lyrics for a song
+export const fetchLyrics = async (songId) => {
+  if (!songId) return null;
+  try {
+    const url = `${SAAVN_API_BASE}/songs/${songId}/lyrics`;
+    const data = await fetchWithCache(url);
+    if (data.status === 'SUCCESS' && data.data) {
+      return data.data;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching lyrics:', error);
+    return null;
   }
 };

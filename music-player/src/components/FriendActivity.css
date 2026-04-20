@@ -1,0 +1,126 @@
+.friend-activity-panel {
+  position: fixed;
+  bottom: 100px;
+  right: 20px;
+  z-index: 85;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.friend-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 24px;
+  background: rgba(20,20,30,0.9);
+  border: 1px solid var(--glass-border);
+  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 500;
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.friend-toggle:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: var(--primary);
+}
+
+.online-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #1db954;
+  box-shadow: 0 0 6px #1db954;
+}
+
+.friend-list {
+  width: 260px;
+  border-radius: 16px;
+  padding: 16px;
+  background: rgba(15,15,25,0.95);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(16px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.friend-list h3 {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.friend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.friend-item:last-of-type {
+  border-bottom: none;
+}
+
+.friend-avatar {
+  font-size: 24px;
+  width: 36px;
+  height: 36px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.friend-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.friend-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.friend-track {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.friend-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #1db954;
+  flex-shrink: 0;
+}
+
+.friend-hint {
+  font-size: 10px;
+  text-align: center;
+  margin-top: 4px;
+}
+
+@media (max-width: 768px) {
+  .friend-activity-panel {
+    bottom: 150px;
+    right: 12px;
+  }
+  .friend-list {
+    width: 240px;
+  }
+}

@@ -28,6 +28,19 @@
   min-width: 180px;
 }
 
+.track-clickable-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+}
+
+.track-clickable-area:hover .track-details h4 {
+  text-decoration: underline;
+}
+
 .track-cover {
   width: 56px;
   height: 56px;
@@ -70,6 +83,10 @@
 .control-btn:hover {
   color: white;
   transform: scale(1.1);
+}
+
+.control-btn.active {
+  color: var(--primary);
 }
 
 .play-btn {
@@ -142,15 +159,37 @@ input[type=range]::-webkit-slider-runnable-track {
   width: 100px !important;
 }
 
-.mobile-progress {
+.mobile-progress-input {
+  -webkit-appearance: none;
+  appearance: none;
   display: block;
   position: absolute;
-  top: 0;
+  top: -8px; /* Moves touch target slightly up */
   left: 0;
-  height: 2px;
-  background: var(--primary);
-  transition: width 0.1s linear;
-  box-shadow: 0 0 8px var(--primary);
+  width: 100%;
+  height: 16px; /* Larger touch target */
+  background: transparent;
+  cursor: pointer;
+  z-index: 10;
+  margin: 0;
+  padding: 0;
+}
+
+.mobile-progress-input::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 2px; /* Visual thin line */
+  background: linear-gradient(to right, var(--primary) var(--progress), transparent var(--progress));
+  position: absolute;
+  bottom: 0; /* Align the visual line to the bottom of the 16px touch target (which means top of the player) */
+}
+
+.mobile-progress-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: transparent; /* Invisible thumb for scrubbing */
+  cursor: pointer;
 }
 
 @media (max-width: 768px) {
@@ -183,14 +222,22 @@ input[type=range]::-webkit-slider-runnable-track {
     border-radius: 6px;
   }
 
+  .track-details {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
   .track-details h4 {
     font-size: 14px;
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 140px;
     color: #fff;
+    width: 100%;
   }
 
   .track-details p {
@@ -198,7 +245,20 @@ input[type=range]::-webkit-slider-runnable-track {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 140px;
+    width: 100%;
+  }
+
+  .artist-link {
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.2s;
+    font-size: 13px;
+    display: block; /* Ensure block level for truncation */
+  }
+
+  .artist-link:hover {
+    color: white;
+    text-decoration: underline;
   }
 
   /* Controls only on the right — no volume on mobile */

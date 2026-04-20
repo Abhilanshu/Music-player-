@@ -168,9 +168,169 @@
   }
 
   .main-content {
-    margin-top: 60px;
-    /* topbar(60) + bottom occupied space(160) */
-    height: calc(100vh - 60px - 160px);
-    padding-bottom: 20px;
+    margin-top: 0;
+    padding-top: 80px; /* Space for 60px top bar + padding */
+    height: 100vh;
+    padding-bottom: 180px; /* Space for bottom nav + player + extra padding */
+  }
+}
+
+.settings-btn {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  width: 100%;
+  border-radius: 8px;
+  color: var(--text-muted);
+  transition: var(--transition);
+  margin-top: auto;
+  margin-bottom: 24px;
+}
+
+.settings-btn:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Modal UI */
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(5px);
+}
+
+.settings-modal {
+  width: 90%;
+  max-width: 450px;
+  max-height: 85vh;
+  border-radius: 20px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-scroll-area {
+  padding: 0 24px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.settings-slider {
+  width: 100%;
+  margin-top: 12px;
+  accent-color: var(--primary);
+}
+
+.eq-container {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px 0;
+  gap: 8px;
+}
+
+.eq-slider-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.eq-slider {
+  appearance: slider-vertical;
+  width: 12px;
+  height: 120px;
+  accent-color: var(--primary);
+}
+
+.eq-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.modal-content {
+  width: 90%;
+  max-width: 400px;
+  padding: 24px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h2 {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.close-btn {
+  color: var(--text-muted);
+}
+.close-btn:hover { color: white; }
+
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.settings-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.quality-selector, .timer-selector {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.quality-btn, .timer-btn {
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.1);
+  color: var(--text-main);
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.quality-btn:hover, .timer-btn:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+.quality-btn.active, .timer-btn.active {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 4px 12px var(--primary-glow);
+}
+
+.timer-btn.cancel {
+  background: rgba(255, 75, 75, 0.2);
+  color: #ff4b4b;
+}
+
+@media (max-width: 768px) {
+  .settings-btn {
+    display: none; /* Hide in mobile sidebar, can be added to top bar or user profile later */
   }
 }

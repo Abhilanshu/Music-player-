@@ -1,9 +1,12 @@
-import React, { useRef } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Heart, ListMusic, Mic, Maximize2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { usePlayer } from '../context/PlayerContext';
+import { useState } from 'react';
+import LyricsView from './LyricsView';
+import FullscreenPlayer from './FullscreenPlayer';
 import './Player.css';
 
-const Player = () => {
+const Player = ({ toggleQueue }) => {
   const { 
     currentTrack, 
     isPlaying, 
@@ -14,8 +17,13 @@ const Player = () => {
     setVolume,
     currentTime,
     duration,
-    seek
+    seek,
+    likedSongs,
+    toggleLiked
   } = usePlayer();
+
+  const [showLyrics, setShowLyrics] = useState(false);
+  const [showFullscreen, setShowFullscreen] = useState(false);
 
   const handleSeek = (e) => {
     seek(Number(e.target.value));
@@ -34,17 +42,29 @@ const Player = () => {
 
   if (!currentTrack) return null;
 
+  // Sometimes artists are comma separated, just take the first one or pass the whole string
+  const primaryArtist = currentTrack.artist.split(',')[0].trim();
+
   return (
     <div className="player-bar glass">
       <div className="player-layout">
         
         {/* Track Info */}
         <div className="track-info animate-fade-in">
-          <img src={currentTrack.coverUrl} alt="Cover" className="track-cover" />
-          <div className="track-details">
-            <h4 className="truncate">{currentTrack.title}</h4>
-            <p className="truncate text-muted">{currentTrack.artist}</p>
+          <div className="track-clickable-area" onClick={() => setShowFullscreen(true)}>
+            <img src={currentTrack.coverUrl} alt="Cover" className="track-cover" />
+            <div className="track-details">
+              <h4 className="truncate">{currentTrack.title}</h4>
+              <p className="truncate text-muted">{currentTrack.artist}</p>
+            </div>
           </div>
+          <button 
+            className="control-btn" 
+            onClick={() => toggleLiked(currentTrack)}
+            style={{ color: likedSongs.find(t => t.id === currentTrack.id) ? '#ff4b4b' : '' }}
+          >
+            <Heart size={20} fill={likedSongs.find(t => t.id === currentTrack.id) ? '#ff4b4b' : 'none'} />
+          </button>
         </div>
 
         {/* Controls */}
@@ -71,8 +91,25 @@ const Player = () => {
           </div>
         </div>
 
-        {/* Volume */}
+        {/* Volume + Queue + Lyrics + Fullscreen */}
         <div className="volume-controls hidden-on-mobile">
+          <button 
+            className="control-btn" 
+            onClick={() => setShowFullscreen(true)} 
+            title="Fullscreen"
+          >
+            <Maximize2 size={18} />
+          </button>
+          <button 
+            className={`control-btn ${showLyrics ? 'active' : ''}`} 
+            onClick={() => setShowLyrics(!showLyrics)} 
+            title="Lyrics"
+          >
+            <Mic size={20} />
+          </button>
+          <button className="control-btn" onClick={toggleQueue} title="Up Next Queue">
+            <ListMusic size={20} />
+          </button>
           <button className="control-btn" onClick={() => setVolume(volume === 0 ? 1 : 0)}>
             {volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
           </button>
@@ -90,7 +127,17 @@ const Player = () => {
       </div>
       
       {/* Mobile continuous progress bar at absolute top */}
-      <div className="mobile-progress md-hidden" style={{ width: `${(currentTime/(duration||30))*100}%` }}></div>
+      <input 
+        type="range"
+        className="mobile-progress-input md-hidden" 
+        min={0} 
+        max={duration || 100} 
+        value={currentTime} 
+        onChange={handleSeek}
+        style={{
+          '--progress': `${(currentTime / (duration || 30)) * 100}%`
+        }}
+      />
     </div>
   );
 };
