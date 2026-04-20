@@ -193,6 +193,7 @@ export const PlayerProvider = ({ children }) => {
   useEffect(() => {
     if (!audioRef.current) {
       audioRef.current = new window.Audio();
+      audioRef.current.crossOrigin = 'anonymous';
       // Initialize EQ after a short delay to allow DOM to settle / user interaction
       setTimeout(() => {
         try {
@@ -252,6 +253,7 @@ export const PlayerProvider = ({ children }) => {
           const nextIdx = currentIndex + 1;
           if (nextIdx < queue.length && !nextAudioRef.current) {
             nextAudioRef.current = new window.Audio();
+            nextAudioRef.current.crossOrigin = 'anonymous';
             nextAudioRef.current.src = queue[nextIdx].previewUrl;
             nextAudioRef.current.volume = 0;
             nextAudioRef.current.play().catch(() => {});
