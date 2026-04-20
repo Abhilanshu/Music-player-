@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
+import React, { createContext, useContext, useState, useRef, useEffect, useMemo, useCallback } from 'react';
 
 const PlayerContext = createContext();
 
@@ -144,32 +144,41 @@ export const PlayerProvider = ({ children }) => {
 
   // Phase 4: Web Audio API - 5-Band Equalizer
   const audioCtxRef = useRef(null);
+  const sourceRef = useRef(null);
   const filtersRef = useRef([]);
 
   const initEQ = (audioElement) => {
+    if (sourceRef.current) return; // Already initialized
+
     if (!audioCtxRef.current) {
       audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
     }
     const ctx = audioCtxRef.current;
-    const source = ctx.createMediaElementSource(audioElement);
-
-    // Frequencies: 60Hz, 250Hz, 1kHz, 4kHz, 16kHz
-    const frequencies = [60, 250, 1000, 4000, 16000];
-    const types = ['lowshelf', 'peaking', 'peaking', 'peaking', 'highshelf'];
     
-    let lastNode = source;
-    const newFilters = frequencies.map((freq, i) => {
-      const filter = ctx.createBiquadFilter();
-      filter.type = types[i];
-      filter.frequency.value = freq;
-      filter.gain.value = eqBands[i];
-      lastNode.connect(filter);
-      lastNode = filter;
-      return filter;
-    });
+    try {
+      const source = ctx.createMediaElementSource(audioElement);
+      sourceRef.current = source;
 
-    lastNode.connect(ctx.destination);
-    filtersRef.current = newFilters;
+      // Frequencies: 60Hz, 250Hz, 1kHz, 4kHz, 16kHz
+      const frequencies = [60, 250, 1000, 4000, 16000];
+      const types = ['lowshelf', 'peaking', 'peaking', 'peaking', 'highshelf'];
+      
+      let lastNode = source;
+      const newFilters = frequencies.map((freq, i) => {
+        const filter = ctx.createBiquadFilter();
+        filter.type = types[i];
+        filter.frequency.value = freq;
+        filter.gain.value = eqBands[i];
+        lastNode.connect(filter);
+        lastNode = filter;
+        return filter;
+      });
+
+      lastNode.connect(ctx.destination);
+      filtersRef.current = newFilters;
+    } catch (err) {
+      console.warn('MediaElementSource already created or AudioContext error:', err);
+    }
   };
 
   // Update EQ bands whenever they change
@@ -179,19 +188,21 @@ export const PlayerProvider = ({ children }) => {
     });
   }, [eqBands]);
 
-  // Lazy initialize Audio
   const audioRef = useRef(null);
-  if (!audioRef.current) {
-    audioRef.current = new window.Audio();
-    // Initialize EQ after a short delay to allow DOM to settle / user interaction
-    setTimeout(() => {
-      try {
-        initEQ(audioRef.current);
-      } catch (e) {
-        console.warn('Web Audio EQ initialization failed (needs user gesture):', e);
-      }
-    }, 1000);
-  }
+
+  useEffect(() => {
+    if (!audioRef.current) {
+      audioRef.current = new window.Audio();
+      // Initialize EQ after a short delay to allow DOM to settle / user interaction
+      setTimeout(() => {
+        try {
+          if (audioRef.current) initEQ(audioRef.current);
+        } catch (e) {
+          console.warn('Web Audio EQ initialization failed (needs user gesture):', e);
+        }
+      }, 1000);
+    }
+  }, []);
 
   // Cleanup audio
   useEffect(() => {
@@ -473,7 +484,27 @@ export const PlayerProvider = ({ children }) => {
     }
   };
 
-  const contextValue = React.useMemo(() => ({
+  const sharePlaylist = useCallback((playlistId) => {
+    const code = `MUSE-${playlistId.slice(-6).toUpperCase()}`;
+    setPlaylists(prev => prev.map(p => p.id === playlistId ? { ...p, shareCode: code, isCollaborative: true } : p));
+    return code;
+  }, []);
+
+  const joinCollaborativePlaylist = useCallback((code) => {
+    if (!code.startsWith('MUSE-')) return false;
+    const newPlaylist = {
+      id: `shared-${Date.now()}`,
+      name: `Shared Playlist (${code})`,
+      tracks: [],
+      isCollaborative: true,
+      shareCode: code,
+      owner: 'Friend'
+    };
+    setPlaylists(prev => [...prev, newPlaylist]);
+    return true;
+  }, []);
+
+  const contextValue = useMemo(() => ({
     currentTrack,
     isPlaying,
     togglePlay,
@@ -498,26 +529,8 @@ export const PlayerProvider = ({ children }) => {
     startSleepTimer,
     playHistory,
     friends: MOCK_FRIENDS,
-    sharePlaylist: (playlistId) => {
-      const code = `MUSE-${playlistId.slice(-6).toUpperCase()}`;
-      setPlaylists(prev => prev.map(p => p.id === playlistId ? { ...p, shareCode: code, isCollaborative: true } : p));
-      return code;
-    },
-    joinCollaborativePlaylist: (code) => {
-      if (!code.startsWith('MUSE-')) return false;
-      // In a real app, this would fetch from a database. 
-      // For this demo, we'll simulate "joining" a mock playlist if it's a new code.
-      const newPlaylist = {
-        id: `shared-${Date.now()}`,
-        name: `Shared Playlist (${code})`,
-        tracks: [], // Would be populated from DB
-        isCollaborative: true,
-        shareCode: code,
-        owner: 'Friend'
-      };
-      setPlaylists(prev => [...prev, newPlaylist]);
-      return true;
-    },
+    sharePlaylist,
+    joinCollaborativePlaylist,
     crossfadeDuration,
     setCrossfadeDuration,
     eqBands,
