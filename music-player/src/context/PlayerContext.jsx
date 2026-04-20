@@ -389,6 +389,7 @@ export const PlayerProvider = ({ children }) => {
           audio.src = selectedUrl;
         }
         if (isPlaying) {
+          audioCtxRef.current?.resume();
           audio.play().catch(e => console.log('Auto-play prevented by browser policy until user interacts:', e));
         } else {
           audio.pause();
@@ -422,6 +423,7 @@ export const PlayerProvider = ({ children }) => {
 
   const togglePlay = () => {
     if (!currentTrack) return;
+    audioCtxRef.current?.resume();
     setIsPlaying(!isPlaying);
   };
 
