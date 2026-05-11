@@ -352,3 +352,43 @@ export const fetchLyrics = async (songId) => {
     return null;
   }
 };
+
+// Robust YouTube (Piped API) Fallback for Full-Length Audio
+export const fetchFullAudio = async (track) => {
+  if (!track) return null;
+  const q = encodeURIComponent(`${track.title} ${track.artist}`);
+  
+  // List of public Piped API instances
+  const instances = [
+    'https://pipedapi.kavin.rocks',
+    'https://pipedapi.smnz.de',
+    'https://pipedapi.syncpundit.io',
+    'https://api.piped.projectsegfau.lt'
+  ];
+  
+  for (const instance of instances) {
+    try {
+      const searchRes = await fetch(`${instance}/search?q=${q}&filter=music_songs`);
+      if (!searchRes.ok) continue;
+      const searchData = await searchRes.json();
+      
+      if (searchData.items && searchData.items.length > 0) {
+        const videoId = searchData.items[0].url.split('v=')[1] || searchData.items[0].url.split('/').pop();
+        const streamRes = await fetch(`${instance}/streams/${videoId}`);
+        if (!streamRes.ok) continue;
+        const streamData = await streamRes.json();
+        
+        const audioStreams = streamData.audioStreams;
+        if (audioStreams && audioStreams.length > 0) {
+          // Prefer m4a for web compatibility, fallback to first
+          const bestStream = audioStreams.find(s => s.mimeType.includes('m4a')) || audioStreams[0];
+          return bestStream.url;
+        }
+      }
+    } catch (e) {
+      console.warn(`Piped instance ${instance} failed to fetch full audio.`);
+    }
+  }
+  
+  return track.previewUrl; // Absolute fallback to 30s preview if YouTube fails completely
+};

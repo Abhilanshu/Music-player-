@@ -348,8 +348,7 @@ export const PlayerProvider = ({ children }) => {
       const setAudioSourceAndPlay = async () => {
         let selectedUrl = currentTrack.previewUrl;
         
-
-        // Handle JioSaavn Audio Quality (if available)
+        // Handle JioSaavn Audio Quality (if available and not just a preview link)
         if (currentTrack.downloadUrls && currentTrack.downloadUrls.length > 0) {
           const targetQualityStr = audioQuality || '320kbps';
           const matchedLink = currentTrack.downloadUrls.find(l => l.quality === targetQualityStr);
@@ -359,6 +358,16 @@ export const PlayerProvider = ({ children }) => {
             selectedUrl = currentTrack.downloadUrls[0].link;
           } else {
             selectedUrl = currentTrack.downloadUrls[currentTrack.downloadUrls.length - 1].link;
+          }
+        } else {
+          // If no download URLs exist, it means we are using iTunes or a restricted JioSaavn response.
+          // In this case, dynamically fetch the FULL audio from YouTube (Piped API)!
+          try {
+            const { fetchFullAudio } = await import('../services/api');
+            const fullUrl = await fetchFullAudio(currentTrack);
+            if (fullUrl) selectedUrl = fullUrl;
+          } catch (err) {
+            console.error("Failed to fetch full audio stream:", err);
           }
         }
 
