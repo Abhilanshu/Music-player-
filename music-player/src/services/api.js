@@ -246,14 +246,14 @@ export const getLiveTrending = async () => {
       return {
         trending: fallbackSongs,
         charts: [
-          { id: 'mock-hindi', title: 'Top Hindi Hits', coverUrl: 'https://c.saavncdn.com/editorial/TopJioTunesHindi_20220617060322.jpg?bch=1655452317' },
-          { id: 'mock-punjabi', title: 'Top Punjabi 50', coverUrl: 'https://c.saavncdn.com/editorial/TopJioTunesPunjabi_20220617060322.jpg?bch=1655452317' },
-          { id: 'mock-english', title: 'Top English Pop', coverUrl: 'https://c.saavncdn.com/editorial/TopJioTunesEnglish_20220617060322.jpg?bch=1655452317' }
+          { id: 'mock-hindi', title: 'Top Hindi Hits', coverUrl: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?auto=format&fit=crop&q=80&w=500&h=500' },
+          { id: 'mock-punjabi', title: 'Top Punjabi 50', coverUrl: 'https://images.unsplash.com/photo-1493225457124-a1a2a5f5f9af?auto=format&fit=crop&q=80&w=500&h=500' },
+          { id: 'mock-english', title: 'Top English Pop', coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&q=80&w=500&h=500' }
         ],
         playlists: [
-          { id: 'mock-arijit', title: 'Arijit Singh Best', coverUrl: 'https://c.saavncdn.com/editorial/BestOfArijitSinghHindi_20220617060322.jpg?bch=1655452317' },
-          { id: 'mock-party', title: 'Bollywood Party', coverUrl: 'https://c.saavncdn.com/editorial/BollywoodDance_20220617060322.jpg?bch=1655452317' },
-          { id: 'mock-retro', title: 'Retro Romance', coverUrl: 'https://c.saavncdn.com/editorial/RetroRomance_20220617060322.jpg?bch=1655452317' }
+          { id: 'mock-arijit', title: 'Arijit Singh Best', coverUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&q=80&w=500&h=500' },
+          { id: 'mock-party', title: 'Bollywood Party', coverUrl: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&q=80&w=500&h=500' },
+          { id: 'mock-retro', title: 'Retro Romance', coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=500&h=500' }
         ]
       };
     }
