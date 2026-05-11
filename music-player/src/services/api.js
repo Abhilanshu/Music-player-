@@ -155,32 +155,30 @@ export const searchMusic = async (query, limit = 200) => {
     console.error('Error searching JioSaavn:', error);
   }
 
-  // 4. YouTube Fallback (if JioSaavn has no results or few results)
+  // 4. iTunes API Fallback (Extremely Reliable)
   if (results.length < 3) {
     try {
-      console.log('JioSaavn returned empty, falling back to YouTube (Piped API)...');
-      const ytUrl = `https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(query)}&filter=music_songs`;
-      const ytRes = await fetch(ytUrl);
-      const ytData = await ytRes.json();
+      console.log('JioSaavn returned empty, falling back to iTunes API...');
+      const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=15`;
+      const itunesRes = await fetch(itunesUrl);
+      const itunesData = await itunesRes.json();
       
-      if (ytData.items && ytData.items.length > 0) {
-        // Map YouTube results to our Track format
-        // Note: Piped requires a secondary fetch to get the audio stream URL. 
-        // We will store the videoId in previewUrl temporarily with a special prefix, 
-        // and PlayerContext will intercept it before playing.
-        const ytResults = ytData.items.slice(0, 15).map(item => ({
-          id: item.url.split('?v=')[1],
-          title: item.title,
-          artist: item.uploaderName || 'YouTube Artist',
-          album: 'YouTube Fallback',
-          coverUrl: item.thumbnail,
-          previewUrl: `YT_FALLBACK:${item.url.split('?v=')[1]}`,
-          duration: item.duration || 0,
-        }));
-        results = [...results, ...ytResults];
+      if (itunesData.results && itunesData.results.length > 0) {
+        const itunesResults = itunesData.results.map(item => ({
+          id: item.trackId.toString(),
+          title: item.trackName,
+          artist: item.artistName || 'Unknown Artist',
+          album: item.collectionName || 'Single',
+          coverUrl: item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb', '500x500bb') : '',
+          previewUrl: item.previewUrl,
+          duration: Math.floor((item.trackTimeMillis || 0) / 1000),
+          type: 'song'
+        })).filter(t => t.previewUrl); // Ensure it has playable audio
+        
+        results = [...results, ...itunesResults];
       }
     } catch (e) {
-      console.error('YouTube Fallback failed:', e);
+      console.error('iTunes Fallback failed:', e);
     }
   }
 
@@ -220,11 +218,42 @@ export const getLiveTrending = async () => {
         }))
       };
     }
-    return null;
   } catch (error) {
     console.error('Error fetching live modules:', error);
-    return null;
   }
+
+  // iTunes Fallback for Home Page Trending
+  try {
+    console.log("Fetching iTunes Fallback for Trending...");
+    const fallbackTerms = ['pop', 'hits', 'arijit', 'weekend'];
+    const randomTerm = fallbackTerms[Math.floor(Math.random() * fallbackTerms.length)];
+    const itunesUrl = `https://itunes.apple.com/search?term=${randomTerm}&media=music&limit=15`;
+    const itunesRes = await fetch(itunesUrl);
+    const itunesData = await itunesRes.json();
+
+    if (itunesData.results && itunesData.results.length > 0) {
+      const fallbackSongs = itunesData.results.map(item => ({
+        id: item.trackId.toString(),
+        title: item.trackName,
+        artist: item.artistName || 'Unknown Artist',
+        album: item.collectionName || 'Single',
+        coverUrl: item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb', '500x500bb') : '',
+        previewUrl: item.previewUrl,
+        duration: Math.floor((item.trackTimeMillis || 0) / 1000),
+        type: 'song'
+      })).filter(t => t.previewUrl);
+
+      return {
+        trending: fallbackSongs,
+        charts: [],
+        playlists: []
+      };
+    }
+  } catch (e) {
+    console.error('iTunes Fallback for Trending failed:', e);
+  }
+
+  return null;
 };
 
 // Microservice: Recommendation Engine for Infinite Auto-Play

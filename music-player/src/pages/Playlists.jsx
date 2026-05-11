@@ -96,6 +96,15 @@ const Playlists = () => {
     }
   };
 
+  const handleShare = async (playlistId) => {
+    const code = sharePlaylist(playlistId);
+    setCopiedCode(code);
+    try {
+      await navigator.clipboard?.writeText(code);
+    } catch (e) {}
+    setTimeout(() => setCopiedCode(null), 3000);
+  };
+
   return (
     <div className="playlists-page animate-fade-in">
       <div className="playlists-sidebar glass">

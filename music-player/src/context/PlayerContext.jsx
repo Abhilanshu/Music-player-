@@ -241,26 +241,15 @@ export const PlayerProvider = ({ children }) => {
     const setAudioTime = () => {
       setCurrentTime(audio.currentTime);
 
-      // Crossfade Logic
+      // Crossfade Logic (Fade out only to prevent dual-audio bugs on mobile)
       if (crossfadeDuration > 0 && audio.duration > 0 && isPlaying) {
         const remaining = audio.duration - audio.currentTime;
         if (remaining <= crossfadeDuration && remaining > 0) {
           // Fade out current
           const fadeProgress = remaining / crossfadeDuration; // 1 → 0
           audio.volume = Math.max(0, fadeProgress * volume);
-
-          // Pre-load and fade in the next track
-          const nextIdx = currentIndex + 1;
-          if (nextIdx < queue.length && !nextAudioRef.current) {
-            nextAudioRef.current = new window.Audio();
-            nextAudioRef.current.crossOrigin = 'anonymous';
-            nextAudioRef.current.src = queue[nextIdx].previewUrl;
-            nextAudioRef.current.volume = 0;
-            nextAudioRef.current.play().catch(() => {});
-          }
-          if (nextAudioRef.current) {
-            nextAudioRef.current.volume = Math.min(volume, (1 - fadeProgress) * volume);
-          }
+        } else if (remaining > crossfadeDuration) {
+          audio.volume = volume; // Restore volume if we seeked back
         }
       }
     };
@@ -349,32 +338,19 @@ export const PlayerProvider = ({ children }) => {
     const audio = audioRef.current;
     if (currentTrack) {
       
+      // Stop any crossfading audio from leaking when switching tracks manually
+      if (nextAudioRef.current) {
+        nextAudioRef.current.pause();
+        nextAudioRef.current.src = '';
+        nextAudioRef.current = null;
+      }
+      
       const setAudioSourceAndPlay = async () => {
         let selectedUrl = currentTrack.previewUrl;
         
-        // 1. Handle YouTube Fallback Streams just-in-time
-        if (selectedUrl && selectedUrl.startsWith('YT_FALLBACK:')) {
-          const videoId = selectedUrl.split(':')[1];
-          try {
-            console.log("Fetching YouTube Audio Stream...");
-            const res = await fetch(`https://pipedapi.kavin.rocks/streams/${videoId}`);
-            const data = await res.json();
-            // Find an m4a or webm audio stream
-            const audioStream = data.audioStreams?.find(s => s.mimeType.includes('audio/mp4') || s.mimeType.includes('audio/webm'));
-            if (audioStream) {
-              selectedUrl = audioStream.url;
-            } else {
-              throw new Error("No audio stream found");
-            }
-          } catch (e) {
-            console.error("YouTube Stream fetch failed:", e);
-            // Skip track if it totally fails
-            nextTrack();
-            return;
-          }
-        } 
-        // 2. Handle JioSaavn Audio Quality
-        else if (currentTrack.downloadUrls && currentTrack.downloadUrls.length > 0) {
+
+        // Handle JioSaavn Audio Quality (if available)
+        if (currentTrack.downloadUrls && currentTrack.downloadUrls.length > 0) {
           const targetQualityStr = audioQuality || '320kbps';
           const matchedLink = currentTrack.downloadUrls.find(l => l.quality === targetQualityStr);
           if (matchedLink) {
@@ -395,6 +371,9 @@ export const PlayerProvider = ({ children }) => {
           audio.play().catch(e => console.log('Auto-play prevented by browser policy until user interacts:', e));
         } else {
           audio.pause();
+          if (nextAudioRef.current) {
+            nextAudioRef.current.pause();
+          }
         }
       };
 
