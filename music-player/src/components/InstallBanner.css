@@ -1,6 +1,6 @@
 .install-banner {
   position: fixed;
-  bottom: 80px; /* above player bar */
+  bottom: 168px; /* above player bar (70px nav + 88px player + 10px gap) */
   left: 50%;
   transform: translateX(-50%);
   width: calc(100% - 32px);

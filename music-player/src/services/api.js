@@ -225,9 +225,9 @@ export const getLiveTrending = async () => {
   // iTunes Fallback for Home Page Trending
   try {
     console.log("Fetching iTunes Fallback for Trending...");
-    const fallbackTerms = ['pop', 'hits', 'arijit', 'weekend'];
+    const fallbackTerms = ['bollywood hits', 'arijit singh', 'hindi trending', 'punjabi hits', 'shreya ghoshal'];
     const randomTerm = fallbackTerms[Math.floor(Math.random() * fallbackTerms.length)];
-    const itunesUrl = `https://itunes.apple.com/search?term=${randomTerm}&media=music&limit=15`;
+    const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(randomTerm)}&media=music&limit=20`;
     const itunesRes = await fetch(itunesUrl);
     const itunesData = await itunesRes.json();
 
@@ -245,8 +245,16 @@ export const getLiveTrending = async () => {
 
       return {
         trending: fallbackSongs,
-        charts: [],
-        playlists: []
+        charts: [
+          { id: 'mock-hindi', title: 'Top Hindi Hits', coverUrl: 'https://c.saavncdn.com/editorial/TopJioTunesHindi_20220617060322.jpg?bch=1655452317' },
+          { id: 'mock-punjabi', title: 'Top Punjabi 50', coverUrl: 'https://c.saavncdn.com/editorial/TopJioTunesPunjabi_20220617060322.jpg?bch=1655452317' },
+          { id: 'mock-english', title: 'Top English Pop', coverUrl: 'https://c.saavncdn.com/editorial/TopJioTunesEnglish_20220617060322.jpg?bch=1655452317' }
+        ],
+        playlists: [
+          { id: 'mock-arijit', title: 'Arijit Singh Best', coverUrl: 'https://c.saavncdn.com/editorial/BestOfArijitSinghHindi_20220617060322.jpg?bch=1655452317' },
+          { id: 'mock-party', title: 'Bollywood Party', coverUrl: 'https://c.saavncdn.com/editorial/BollywoodDance_20220617060322.jpg?bch=1655452317' },
+          { id: 'mock-retro', title: 'Retro Romance', coverUrl: 'https://c.saavncdn.com/editorial/RetroRomance_20220617060322.jpg?bch=1655452317' }
+        ]
       };
     }
   } catch (e) {
@@ -276,6 +284,38 @@ export const getSongSuggestions = async (songId) => {
 // Fetch all playable songs from a chart, playlist, or album by ID
 export const getPlaylistSongs = async (id, type = 'playlist') => {
   if (!id) return [];
+
+  // Handle Mocked iTunes Fallback Playlists
+  if (id.startsWith('mock-')) {
+    const mockQueries = {
+      'mock-hindi': 'hindi hits',
+      'mock-punjabi': 'punjabi hits',
+      'mock-english': 'english pop hits',
+      'mock-arijit': 'arijit singh',
+      'mock-party': 'bollywood party dance',
+      'mock-retro': 'kishore kumar retro hindi'
+    };
+    const query = mockQueries[id] || 'music';
+    try {
+      const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=30`;
+      const itunesRes = await fetch(itunesUrl);
+      const itunesData = await itunesRes.json();
+      if (itunesData.results && itunesData.results.length > 0) {
+        return itunesData.results.map(item => ({
+          id: item.trackId.toString(),
+          title: item.trackName,
+          artist: item.artistName || 'Unknown Artist',
+          album: item.collectionName || 'Single',
+          coverUrl: item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb', '500x500bb') : '',
+          previewUrl: item.previewUrl,
+          duration: Math.floor((item.trackTimeMillis || 0) / 1000),
+          type: 'song'
+        })).filter(t => t.previewUrl);
+      }
+    } catch (e) { console.error('iTunes Fallback Playlist failed:', e); }
+    return [];
+  }
+
   try {
     // Try playlist endpoint first, fallback to album if no songs returned
     const playlistUrl = `${SAAVN_API_BASE}/playlists?id=${id}`;

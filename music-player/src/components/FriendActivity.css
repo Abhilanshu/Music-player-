@@ -117,10 +117,6 @@
 
 @media (max-width: 768px) {
   .friend-activity-panel {
-    bottom: 170px;
-    right: 12px;
-  }
-  .friend-list {
-    width: 240px;
+    display: none;
   }
 }
