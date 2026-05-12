@@ -50,7 +50,7 @@ const AuthenticatedApp = () => {
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <Router basename="/Music-player-/">
         <AuthenticatedApp />
       </Router>
     </AuthProvider>
