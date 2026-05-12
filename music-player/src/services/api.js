@@ -1,4 +1,4 @@
-const SAAVN_API_BASE = 'https://jiosaavn-api-privatecvc2.vercel.app';
+const SAAVN_API_BASE = 'https://jiosaavn-api-2.vercel.app';
 
 const requestCache = new Map();
 
@@ -6,13 +6,33 @@ const fetchWithCache = async (url) => {
   if (requestCache.has(url)) {
     return requestCache.get(url);
   }
-  const response = await fetch(url);
-  const data = await response.json();
-  
-  if (data.status === 'SUCCESS') {
-    requestCache.set(url, data);
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (data && (data.status === 'SUCCESS' || data.success === true || Array.isArray(data))) {
+      requestCache.set(url, data);
+    }
+    return data;
+  } catch (e) {
+    console.error('API Fetch Error:', e);
+    return null;
   }
-  return data;
+};
+
+const extractResults = (data) => {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  if (data.data?.results) return data.data.results;
+  if (data.results) return data.results;
+  if (Array.isArray(data.data)) return data.data;
+  if (data.data?.songs) return data.data.songs;
+  if (data.songs) return data.songs;
+  if (data.data?.playlists) return data.data.playlists;
+  if (data.playlists) return data.playlists;
+  if (data.data?.albums) return data.data.albums;
+  if (data.albums) return data.albums;
+  return [];
 };
 
 // Formatter to map raw Saavn JSON structure to our clean Track format
@@ -80,17 +100,14 @@ export const searchAll = async (query) => {
     fetch(`${SAAVN_API_BASE}/search/albums?query=${q}&limit=8`).then(r => r.json()),
   ]);
 
-  const songs = songsRes.status === 'fulfilled' && songsRes.value?.data?.results
-    ? songsRes.value.data.results.map(formatSaavnTrack).filter(t => t?.previewUrl)
-    : [];
+  const songsData = songsRes.status === 'fulfilled' ? extractResults(songsRes.value) : [];
+  const songs = songsData.map(formatSaavnTrack).filter(t => t?.previewUrl);
 
-  const playlists = playlistsRes.status === 'fulfilled' && playlistsRes.value?.data?.results
-    ? playlistsRes.value.data.results.map(formatSaavnPlaylist)
-    : [];
+  const playlistsData = playlistsRes.status === 'fulfilled' ? extractResults(playlistsRes.value) : [];
+  const playlists = playlistsData.map(formatSaavnPlaylist);
 
-  const albums = albumsRes.status === 'fulfilled' && albumsRes.value?.data?.results
-    ? albumsRes.value.data.results.map(formatSaavnAlbum)
-    : [];
+  const albumsData = albumsRes.status === 'fulfilled' ? extractResults(albumsRes.value) : [];
+  const albums = albumsData.map(formatSaavnAlbum);
 
   return { songs, playlists, albums };
 };
@@ -107,9 +124,10 @@ export const searchMusic = async (query, limit = 200) => {
       const cleanQuery = qStr.replace('playlist', '').trim();
       const pUrl = `${SAAVN_API_BASE}/search/playlists?query=${encodeURIComponent(cleanQuery)}&limit=5`;
       const pData = await fetchWithCache(pUrl);
-      if (pData.status === 'SUCCESS' && pData.data?.results?.length > 0) {
+      const pResults = extractResults(pData);
+      if (pResults.length > 0) {
         // Fetch songs for the best matching playlist
-        const topPlaylistId = pData.data.results[0].id;
+        const topPlaylistId = pResults[0].id;
         return await getPlaylistSongs(topPlaylistId);
       }
     } catch (e) { console.error("Playlist search failed", e); }
@@ -124,14 +142,15 @@ export const searchMusic = async (query, limit = 200) => {
       try {
         const url = `${SAAVN_API_BASE}/modules?language=${detectedLang}`;
         const data = await fetchWithCache(url);
-        if (data.status === 'SUCCESS' && data.data?.trending?.songs) {
-          const rawTrendingSongs = data.data.trending.songs || [];
-          const songIds = rawTrendingSongs.map(s => s.id).join(',');
+        const trendingSongs = data?.data?.trending?.songs || data?.trending?.songs || [];
+        if (trendingSongs.length > 0) {
+          const songIds = trendingSongs.map(s => s.id).join(',');
           if (songIds) {
              const songsUrl = `${SAAVN_API_BASE}/songs?id=${songIds}`;
              const songsData = await fetchWithCache(songsUrl);
-             if (songsData.status === 'SUCCESS') {
-               return songsData.data.map(formatSaavnTrack).filter(t => t.previewUrl);
+             const sResults = extractResults(songsData);
+             if (sResults.length > 0) {
+               return sResults.map(formatSaavnTrack).filter(t => t.previewUrl);
              }
           }
         }
@@ -148,8 +167,9 @@ export const searchMusic = async (query, limit = 200) => {
   try {
     const url = `${SAAVN_API_BASE}/search/songs?query=${encodeURIComponent(query)}&limit=${limit}`;
     const data = await fetchWithCache(url);
-    if (data.status === 'SUCCESS' && data.data?.results) {
-      results = data.data.results.map(formatSaavnTrack).filter(t => t.previewUrl);
+    const searchResults = extractResults(data);
+    if (searchResults.length > 0) {
+      results = searchResults.map(formatSaavnTrack).filter(t => t.previewUrl);
     }
   } catch (error) {
     console.error('Error searching JioSaavn:', error);
@@ -190,28 +210,29 @@ export const getLiveTrending = async () => {
   try {
     const url = `${SAAVN_API_BASE}/modules?language=hindi,english,punjabi`;
     const data = await fetchWithCache(url);
-    if (data.status === 'SUCCESS' && data.data) {
-      
-      const rawTrendingSongs = data.data.trending?.songs || [];
+    if (data) {
+      const topData = data.data || data; // v4 returns top level
+      const rawTrendingSongs = topData.trending?.songs || [];
       const songIds = rawTrendingSongs.map(s => s.id).join(',');
       
       let fullSongsConfig = [];
       if (songIds) {
          const songsUrl = `${SAAVN_API_BASE}/songs?id=${songIds}`;
          const songsData = await fetchWithCache(songsUrl);
-         if (songsData.status === 'SUCCESS') {
-           fullSongsConfig = songsData.data.map(formatSaavnTrack).filter(t => t.previewUrl);
+         const sResults = extractResults(songsData);
+         if (sResults.length > 0) {
+           fullSongsConfig = sResults.map(formatSaavnTrack).filter(t => t.previewUrl);
          }
       }
 
       return {
         trending: fullSongsConfig,
-        charts: (data.data.charts || []).map(chart => ({
+        charts: (topData.charts || []).map(chart => ({
            id: chart.id,
            title: chart.title,
            coverUrl: chart.image && chart.image.length > 0 ? chart.image[chart.image.length - 1].link : ''
         })),
-        playlists: (data.data.playlists || []).map(p => ({
+        playlists: (topData.playlists || []).map(p => ({
            id: p.id,
            title: p.title,
            coverUrl: p.image && p.image.length > 0 ? p.image[p.image.length - 1].link : ''
@@ -271,8 +292,9 @@ export const getSongSuggestions = async (songId) => {
     // Fixed URL - ?limit not &limit
     const url = `${SAAVN_API_BASE}/songs/${songId}/suggestions?limit=10`;
     const data = await fetchWithCache(url);
-    if (data.status === 'SUCCESS' && data.data) {
-      return data.data.map(formatSaavnTrack).filter(t => t.previewUrl);
+    const suggResults = extractResults(data);
+    if (suggResults.length > 0) {
+      return suggResults.map(formatSaavnTrack).filter(t => t.previewUrl);
     }
     return [];
   } catch (error) {
@@ -320,15 +342,17 @@ export const getPlaylistSongs = async (id, type = 'playlist') => {
     // Try playlist endpoint first, fallback to album if no songs returned
     const playlistUrl = `${SAAVN_API_BASE}/playlists?id=${id}`;
     const data = await fetchWithCache(playlistUrl);
-    if (data.status === 'SUCCESS' && data.data?.songs) {
-      return data.data.songs.map(formatSaavnTrack).filter(t => t.previewUrl);
+    const pSongs = extractResults(data);
+    if (pSongs.length > 0) {
+      return pSongs.map(formatSaavnTrack).filter(t => t.previewUrl);
     }
     
     // Fallback: try album endpoint
     const albumUrl = `${SAAVN_API_BASE}/albums?id=${id}`;
     const albumData = await fetchWithCache(albumUrl);
-    if (albumData.status === 'SUCCESS' && albumData.data?.songs) {
-      return albumData.data.songs.map(formatSaavnTrack).filter(t => t.previewUrl);
+    const aSongs = extractResults(albumData);
+    if (aSongs.length > 0) {
+      return aSongs.map(formatSaavnTrack).filter(t => t.previewUrl);
     }
 
     return [];
@@ -343,8 +367,8 @@ export const fetchLyrics = async (songId) => {
   try {
     const url = `${SAAVN_API_BASE}/songs/${songId}/lyrics`;
     const data = await fetchWithCache(url);
-    if (data.status === 'SUCCESS' && data.data) {
-      return data.data;
+    if (data) {
+      return data.data?.lyrics || data.lyrics || data.data || data;
     }
     return null;
   } catch (error) {
@@ -368,13 +392,22 @@ export const fetchFullAudio = async (track) => {
   
   for (const instance of instances) {
     try {
-      const searchRes = await fetch(`${instance}/search?q=${q}&filter=music_songs`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+      const searchRes = await fetch(`${instance}/search?q=${q}&filter=music_songs`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
       if (!searchRes.ok) continue;
       const searchData = await searchRes.json();
       
       if (searchData.items && searchData.items.length > 0) {
         const videoId = searchData.items[0].url.split('v=')[1] || searchData.items[0].url.split('/').pop();
-        const streamRes = await fetch(`${instance}/streams/${videoId}`);
+        
+        const streamController = new AbortController();
+        const streamTimeoutId = setTimeout(() => streamController.abort(), 3000);
+        const streamRes = await fetch(`${instance}/streams/${videoId}`, { signal: streamController.signal });
+        clearTimeout(streamTimeoutId);
+        
         if (!streamRes.ok) continue;
         const streamData = await streamRes.json();
         
