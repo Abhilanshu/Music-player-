@@ -1,23 +1,38 @@
-const SAAVN_API_BASE = 'https://jiosaavn-api-2.vercel.app';
+const SAAVN_API_BASES = [
+  'https://saavn-api.vercel.app',
+  'https://jiosaavn-api-beta.vercel.app',
+  'https://jiosaavn-api-2.vercel.app'
+];
 
 const requestCache = new Map();
 
-const fetchWithCache = async (url) => {
-  if (requestCache.has(url)) {
-    return requestCache.get(url);
+const fetchWithCache = async (endpoint) => {
+  if (requestCache.has(endpoint)) {
+    return requestCache.get(endpoint);
   }
-  try {
-    const response = await fetch(url);
-    const data = await response.json();
-    
-    if (data && (data.status === 'SUCCESS' || data.success === true || Array.isArray(data))) {
-      requestCache.set(url, data);
+  
+  for (const base of SAAVN_API_BASES) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s timeout per API
+      
+      const url = endpoint.startsWith('http') ? endpoint : `${base}${endpoint}`;
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
+      const data = await response.json();
+      
+      if (data && (data.status === 'SUCCESS' || data.success === true || Array.isArray(data))) {
+        requestCache.set(endpoint, data);
+        return data; // Return on first success
+      }
+    } catch (e) {
+      console.warn(`API ${base} failed for ${endpoint}, trying next...`);
     }
-    return data;
-  } catch (e) {
-    console.error('API Fetch Error:', e);
-    return null;
   }
+  
+  console.error(`All JioSaavn APIs failed for ${endpoint}`);
+  return null;
 };
 
 const extractResults = (data) => {
@@ -94,20 +109,20 @@ export const searchAll = async (query) => {
   if (!query) return { songs: [], playlists: [], albums: [] };
   const q = encodeURIComponent(query);
   
-  const [songsRes, playlistsRes, albumsRes] = await Promise.allSettled([
-    fetch(`${SAAVN_API_BASE}/search/songs?query=${q}&limit=20`).then(r => r.json()),
-    fetch(`${SAAVN_API_BASE}/search/playlists?query=${q}&limit=10`).then(r => r.json()),
-    fetch(`${SAAVN_API_BASE}/search/albums?query=${q}&limit=8`).then(r => r.json()),
+  const [songsData, playlistsData, albumsData] = await Promise.all([
+    fetchWithCache(`/search/songs?query=${q}&limit=20`),
+    fetchWithCache(`/search/playlists?query=${q}&limit=10`),
+    fetchWithCache(`/search/albums?query=${q}&limit=8`)
   ]);
 
-  const songsData = songsRes.status === 'fulfilled' ? extractResults(songsRes.value) : [];
-  const songs = songsData.map(formatSaavnTrack).filter(t => t?.previewUrl);
+  const sRes = extractResults(songsData);
+  const songs = sRes.map(formatSaavnTrack).filter(t => t?.previewUrl);
 
-  const playlistsData = playlistsRes.status === 'fulfilled' ? extractResults(playlistsRes.value) : [];
-  const playlists = playlistsData.map(formatSaavnPlaylist);
+  const pRes = extractResults(playlistsData);
+  const playlists = pRes.map(formatSaavnPlaylist);
 
-  const albumsData = albumsRes.status === 'fulfilled' ? extractResults(albumsRes.value) : [];
-  const albums = albumsData.map(formatSaavnAlbum);
+  const aRes = extractResults(albumsData);
+  const albums = aRes.map(formatSaavnAlbum);
 
   return { songs, playlists, albums };
 };
@@ -122,7 +137,7 @@ export const searchMusic = async (query, limit = 200) => {
   if (qStr.includes('playlist')) {
     try {
       const cleanQuery = qStr.replace('playlist', '').trim();
-      const pUrl = `${SAAVN_API_BASE}/search/playlists?query=${encodeURIComponent(cleanQuery)}&limit=5`;
+      const pUrl = `/search/playlists?query=${encodeURIComponent(cleanQuery)}&limit=5`;
       const pData = await fetchWithCache(pUrl);
       const pResults = extractResults(pData);
       if (pResults.length > 0) {
@@ -140,13 +155,13 @@ export const searchMusic = async (query, limit = 200) => {
     
     if (detectedLang) {
       try {
-        const url = `${SAAVN_API_BASE}/modules?language=${detectedLang}`;
+        const url = `/modules?language=${detectedLang}`;
         const data = await fetchWithCache(url);
         const trendingSongs = data?.data?.trending?.songs || data?.trending?.songs || [];
         if (trendingSongs.length > 0) {
           const songIds = trendingSongs.map(s => s.id).join(',');
           if (songIds) {
-             const songsUrl = `${SAAVN_API_BASE}/songs?id=${songIds}`;
+             const songsUrl = `/songs?id=${songIds}`;
              const songsData = await fetchWithCache(songsUrl);
              const sResults = extractResults(songsData);
              if (sResults.length > 0) {
@@ -165,7 +180,7 @@ export const searchMusic = async (query, limit = 200) => {
   // 3. Default JioSaavn Song Search
   let results = [];
   try {
-    const url = `${SAAVN_API_BASE}/search/songs?query=${encodeURIComponent(query)}&limit=${limit}`;
+    const url = `/search/songs?query=${encodeURIComponent(query)}&limit=${limit}`;
     const data = await fetchWithCache(url);
     const searchResults = extractResults(data);
     if (searchResults.length > 0) {
@@ -208,7 +223,7 @@ export const searchMusic = async (query, limit = 200) => {
 // Microservice: Gets real internet trending from Saavn Charts
 export const getLiveTrending = async () => {
   try {
-    const url = `${SAAVN_API_BASE}/modules?language=hindi,english,punjabi`;
+    const url = `/modules?language=hindi,english,punjabi`;
     const data = await fetchWithCache(url);
     if (data) {
       const topData = data.data || data; // v4 returns top level
@@ -217,7 +232,7 @@ export const getLiveTrending = async () => {
       
       let fullSongsConfig = [];
       if (songIds) {
-         const songsUrl = `${SAAVN_API_BASE}/songs?id=${songIds}`;
+         const songsUrl = `/songs?id=${songIds}`;
          const songsData = await fetchWithCache(songsUrl);
          const sResults = extractResults(songsData);
          if (sResults.length > 0) {
@@ -290,7 +305,7 @@ export const getSongSuggestions = async (songId) => {
   if (!songId) return [];
   try {
     // Fixed URL - ?limit not &limit
-    const url = `${SAAVN_API_BASE}/songs/${songId}/suggestions?limit=10`;
+    const url = `/songs/${songId}/suggestions?limit=10`;
     const data = await fetchWithCache(url);
     const suggResults = extractResults(data);
     if (suggResults.length > 0) {
@@ -340,7 +355,7 @@ export const getPlaylistSongs = async (id, type = 'playlist') => {
 
   try {
     // Try playlist endpoint first, fallback to album if no songs returned
-    const playlistUrl = `${SAAVN_API_BASE}/playlists?id=${id}`;
+    const playlistUrl = `/playlists?id=${id}`;
     const data = await fetchWithCache(playlistUrl);
     const pSongs = extractResults(data);
     if (pSongs.length > 0) {
@@ -348,7 +363,7 @@ export const getPlaylistSongs = async (id, type = 'playlist') => {
     }
     
     // Fallback: try album endpoint
-    const albumUrl = `${SAAVN_API_BASE}/albums?id=${id}`;
+    const albumUrl = `/albums?id=${id}`;
     const albumData = await fetchWithCache(albumUrl);
     const aSongs = extractResults(albumData);
     if (aSongs.length > 0) {
@@ -365,7 +380,7 @@ export const getPlaylistSongs = async (id, type = 'playlist') => {
 export const fetchLyrics = async (songId) => {
   if (!songId) return null;
   try {
-    const url = `${SAAVN_API_BASE}/songs/${songId}/lyrics`;
+    const url = `/songs/${songId}/lyrics`;
     const data = await fetchWithCache(url);
     if (data) {
       return data.data?.lyrics || data.lyrics || data.data || data;

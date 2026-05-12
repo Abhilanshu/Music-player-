@@ -18,11 +18,16 @@ const Artist = () => {
       setLoading(true);
       try {
         // Search API using the artist name to get their top tracks
-        const results = await searchMusic(name, 50);
-        // Filter specifically for tracks where they are the primary artist if possible,
-        // or just use the search results as their top catalogue.
-        const artistTracks = results.filter(t => t.artist.toLowerCase().includes(name.toLowerCase()));
-        setTracks(artistTracks.length > 0 ? artistTracks : results);
+        const results = await searchMusic(name, 200);
+        const hitsResults = await searchMusic(`${name} hits`, 100);
+        const latestResults = await searchMusic(`${name} latest`, 100);
+        
+        // Combine and deduplicate
+        const allTracks = [...results, ...hitsResults, ...latestResults];
+        const uniqueTracks = Array.from(new Map(allTracks.map(t => [t.id, t])).values());
+        
+        const artistTracks = uniqueTracks.filter(t => t.artist.toLowerCase().includes(name.toLowerCase()));
+        setTracks(artistTracks.length > 0 ? artistTracks : uniqueTracks);
       } catch (error) {
         console.error('Failed to fetch artist tracks', error);
       } finally {
