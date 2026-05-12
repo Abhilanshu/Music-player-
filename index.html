@@ -9,28 +9,28 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Muse" />
-    <link rel="apple-touch-icon" href="pwa-192x192.png" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
 
     <!-- SEO -->
     <title>Muse – Stream Trending Music</title>
     <meta name="description" content="Stream trending Hindi, Punjabi, English music. Live charts, infinite radio, playlist discovery." />
 
-    <link rel="icon" type="image/png" href="favicon.ico" />
+    <link rel="icon" type="image/png" href="icon-192.png" />
     <script>
       // Force kill old broken service workers ONCE
-      if ('serviceWorker' in navigator && !localStorage.getItem('sw_cleaned_v4')) {
+      if ('serviceWorker' in navigator && !localStorage.getItem('sw_cleaned_v5')) {
         navigator.serviceWorker.getRegistrations().then(function(registrations) {
           if (registrations.length > 0) {
             for (let r of registrations) { r.unregister(); }
-            localStorage.setItem('sw_cleaned_v4', 'true');
+            localStorage.setItem('sw_cleaned_v5', 'true');
             setTimeout(() => window.location.reload(true), 1000);
           } else {
-            localStorage.setItem('sw_cleaned_v4', 'true');
+            localStorage.setItem('sw_cleaned_v5', 'true');
           }
         });
       }
     </script>
-    <script type="module" crossorigin src="/Music-player-/assets/index-BYOZ0G-G.js"></script>
+    <script type="module" crossorigin src="/Music-player-/assets/index-DDFYWoIQ.js"></script>
     <link rel="stylesheet" crossorigin href="/Music-player-/assets/index-BcApoBDQ.css">
   <link rel="manifest" href="/Music-player-/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/Music-player-/registerSW.js"></script></head>
   <body>
