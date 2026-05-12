@@ -16,20 +16,6 @@
     <meta name="description" content="Stream trending Hindi, Punjabi, English music. Live charts, infinite radio, playlist discovery." />
 
     <link rel="icon" type="image/png" href="icon-192.png" />
-    <script>
-      // Force kill old broken service workers ONCE
-      if ('serviceWorker' in navigator && !localStorage.getItem('sw_cleaned_v5')) {
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-          if (registrations.length > 0) {
-            for (let r of registrations) { r.unregister(); }
-            localStorage.setItem('sw_cleaned_v5', 'true');
-            setTimeout(() => window.location.reload(true), 1000);
-          } else {
-            localStorage.setItem('sw_cleaned_v5', 'true');
-          }
-        });
-      }
-    </script>
     <script type="module" crossorigin src="/Music-player-/assets/index-CjZrmb2Y.js"></script>
     <link rel="stylesheet" crossorigin href="/Music-player-/assets/index-BcApoBDQ.css">
   <link rel="manifest" href="/Music-player-/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/Music-player-/registerSW.js"></script></head>
