@@ -18,16 +18,15 @@
 
     <link rel="icon" type="image/png" href="/Music-player-/icon-192.png" />
     <script>
-      // Force kill old broken service workers
-      if ('serviceWorker' in navigator) {
+      // Force kill old broken service workers ONCE
+      if ('serviceWorker' in navigator && !localStorage.getItem('sw_cleaned_v3')) {
         navigator.serviceWorker.getRegistrations().then(function(registrations) {
-          for (let registration of registrations) {
-            registration.unregister().then(function(boolean) {
-              if (boolean) {
-                console.log('Old Service Worker unregistered successfully.');
-                window.location.reload(true);
-              }
-            });
+          if (registrations.length > 0) {
+            for (let r of registrations) { r.unregister(); }
+            localStorage.setItem('sw_cleaned_v3', 'true');
+            setTimeout(() => window.location.reload(true), 1000);
+          } else {
+            localStorage.setItem('sw_cleaned_v3', 'true');
           }
         });
       }
@@ -36,6 +35,6 @@
     <link rel="stylesheet" crossorigin href="/Music-player-/assets/index-BcApoBDQ.css">
   <link rel="manifest" href="/Music-player-/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/Music-player-/registerSW.js"></script></head>
   <body>
-    <div id="root"></div>
+    <div id="root"></div>
   </body>
 </html>
