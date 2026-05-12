@@ -193,15 +193,17 @@ export const PlayerProvider = ({ children }) => {
   useEffect(() => {
     if (!audioRef.current) {
       audioRef.current = new window.Audio();
-      audioRef.current.crossOrigin = 'anonymous';
-      // Initialize EQ after a short delay to allow DOM to settle / user interaction
+      // audioRef.current.crossOrigin = 'anonymous'; // REMOVED: This causes CORS block on JioSaavn CDN
+      // Web Audio API EQ disabled because it requires CORS headers from the audio source
+      /*
       setTimeout(() => {
         try {
           if (audioRef.current) initEQ(audioRef.current);
         } catch (e) {
-          console.warn('Web Audio EQ initialization failed (needs user gesture):', e);
+          console.warn('Web Audio EQ initialization failed:', e);
         }
       }, 1000);
+      */
     }
   }, []);
 

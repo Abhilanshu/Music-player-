@@ -46,99 +46,105 @@ const Player = ({ toggleQueue }) => {
   const primaryArtist = currentTrack.artist.split(',')[0].trim();
 
   return (
-    <div className="player-bar glass">
-      <div className="player-layout">
-        
-        {/* Track Info */}
-        <div className="track-info animate-fade-in">
-          <div className="track-clickable-area" onClick={() => setShowFullscreen(true)}>
-            <img src={currentTrack.coverUrl} alt="Cover" className="track-cover" />
-            <div className="track-details">
-              <h4 className="truncate">{currentTrack.title}</h4>
-              <p className="truncate text-muted">{currentTrack.artist}</p>
+    <>
+      <div className="player-bar glass">
+        <div className="player-layout">
+          
+          {/* Track Info */}
+          <div className="track-info animate-fade-in">
+            <div className="track-clickable-area" onClick={() => setShowFullscreen(true)}>
+              <img src={currentTrack.coverUrl} alt="Cover" className="track-cover" />
+              <div className="track-details">
+                <h4 className="truncate">{currentTrack.title}</h4>
+                <p className="truncate text-muted">{currentTrack.artist}</p>
+              </div>
+            </div>
+            <button 
+              className="control-btn" 
+              onClick={() => toggleLiked(currentTrack)}
+              style={{ color: likedSongs.find(t => t.id === currentTrack.id) ? '#ff4b4b' : '' }}
+            >
+              <Heart size={20} fill={likedSongs.find(t => t.id === currentTrack.id) ? '#ff4b4b' : 'none'} />
+            </button>
+          </div>
+
+          {/* Controls */}
+          <div className="player-controls">
+            <div className="control-buttons">
+              <button className="control-btn" onClick={prevTrack}><SkipBack size={20} /></button>
+              <button className="play-btn" onClick={togglePlay}>
+                {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" />}
+              </button>
+              <button className="control-btn" onClick={nextTrack}><SkipForward size={20} /></button>
+            </div>
+            
+            <div className="progress-container">
+              <span className="time">{formatTime(currentTime)}</span>
+              <input 
+                type="range" 
+                className="progress-bar" 
+                min={0} 
+                max={duration || 100} 
+                value={currentTime} 
+                onChange={handleSeek}
+              />
+              <span className="time">{formatTime(duration)}</span>
             </div>
           </div>
-          <button 
-            className="control-btn" 
-            onClick={() => toggleLiked(currentTrack)}
-            style={{ color: likedSongs.find(t => t.id === currentTrack.id) ? '#ff4b4b' : '' }}
-          >
-            <Heart size={20} fill={likedSongs.find(t => t.id === currentTrack.id) ? '#ff4b4b' : 'none'} />
-          </button>
-        </div>
 
-        {/* Controls */}
-        <div className="player-controls">
-          <div className="control-buttons">
-            <button className="control-btn" onClick={prevTrack}><SkipBack size={20} /></button>
-            <button className="play-btn" onClick={togglePlay}>
-              {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" />}
+          {/* Volume + Queue + Lyrics + Fullscreen */}
+          <div className="volume-controls hidden-on-mobile">
+            <button 
+              className="control-btn" 
+              onClick={() => setShowFullscreen(true)} 
+              title="Fullscreen"
+            >
+              <Maximize2 size={18} />
             </button>
-            <button className="control-btn" onClick={nextTrack}><SkipForward size={20} /></button>
-          </div>
-          
-          <div className="progress-container">
-            <span className="time">{formatTime(currentTime)}</span>
+            <button 
+              className={`control-btn ${showLyrics ? 'active' : ''}`} 
+              onClick={() => setShowLyrics(!showLyrics)} 
+              title="Lyrics"
+            >
+              <Mic size={20} />
+            </button>
+            <button className="control-btn" onClick={toggleQueue} title="Up Next Queue">
+              <ListMusic size={20} />
+            </button>
+            <button className="control-btn" onClick={() => setVolume(volume === 0 ? 1 : 0)}>
+              {volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
+            </button>
             <input 
               type="range" 
-              className="progress-bar" 
+              className="volume-bar" 
               min={0} 
-              max={duration || 100} 
-              value={currentTime} 
-              onChange={handleSeek}
+              max={1} 
+              step={0.01} 
+              value={volume} 
+              onChange={handleVolume}
             />
-            <span className="time">{formatTime(duration)}</span>
           </div>
-        </div>
 
-        {/* Volume + Queue + Lyrics + Fullscreen */}
-        <div className="volume-controls hidden-on-mobile">
-          <button 
-            className="control-btn" 
-            onClick={() => setShowFullscreen(true)} 
-            title="Fullscreen"
-          >
-            <Maximize2 size={18} />
-          </button>
-          <button 
-            className={`control-btn ${showLyrics ? 'active' : ''}`} 
-            onClick={() => setShowLyrics(!showLyrics)} 
-            title="Lyrics"
-          >
-            <Mic size={20} />
-          </button>
-          <button className="control-btn" onClick={toggleQueue} title="Up Next Queue">
-            <ListMusic size={20} />
-          </button>
-          <button className="control-btn" onClick={() => setVolume(volume === 0 ? 1 : 0)}>
-            {volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
-          </button>
-          <input 
-            type="range" 
-            className="volume-bar" 
-            min={0} 
-            max={1} 
-            step={0.01} 
-            value={volume} 
-            onChange={handleVolume}
-          />
         </div>
-
+        
+        {/* Mobile continuous progress bar at absolute top */}
+        <input 
+          type="range"
+          className="mobile-progress-input md-hidden" 
+          min={0} 
+          max={duration || 100} 
+          value={currentTime} 
+          onChange={handleSeek}
+          style={{
+            '--progress': `${(currentTime / (duration || 30)) * 100}%`
+          }}
+        />
       </div>
-      
-      {/* Mobile continuous progress bar at absolute top */}
-      <input 
-        type="range"
-        className="mobile-progress-input md-hidden" 
-        min={0} 
-        max={duration || 100} 
-        value={currentTime} 
-        onChange={handleSeek}
-        style={{
-          '--progress': `${(currentTime / (duration || 30)) * 100}%`
-        }}
-      />
-    </div>
+
+      {showFullscreen && (
+        <FullscreenPlayer onClose={() => setShowFullscreen(false)} />
+      )}
+    </>
   );
 };
 
